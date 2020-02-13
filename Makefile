@@ -12,10 +12,10 @@ LIB_INC = -I./include
 
 # Run the program.
 run: compile
-	./bin/run
+	cd bin; ./run image.txt
 
 #compile the program
 compile:
-	gcc -Wall -std=c11 ./src/*.c -o ./bin/run $(INCLUDES) $(TARGET)
+	gcc -Wall -std=c11 ./assets/*.c -o ./bin/run $(INCLUDES) $(TARGET)
 
 
