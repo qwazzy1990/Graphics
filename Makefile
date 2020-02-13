@@ -2,9 +2,20 @@
 
 
 
+# Frameworks for newer MACOS, where include files are moved
+INCLUDES = -F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/ -framework OpenGL -framework GLUT -lm -Wno-deprecated-declarations
+# Mac OS opengl target
+TARGET = -mmacosx-version-min=10.8
 
-all:
-	gcc -Iinclude glad.c main.c dependencies/libglfw.so.3.2 -o output -ldl -L/dependencies/glfw -lm -lGL -lGLU -lglut
+# Vic library
+LIB_INC = -I./include
 
-clean:
-	rm output
+# Run the program.
+run: compile
+	./bin/run
+
+#compile the program
+compile:
+	gcc -Wall -std=c11 ./src/*.c -o ./bin/run $(INCLUDES) $(TARGET)
+
+
