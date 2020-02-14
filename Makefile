@@ -18,4 +18,5 @@ run: compile
 compile:
 	gcc -Wall -std=c11 ./src/a.c -o ./bin/run $(INCLUDES) $(TARGET)
 
-
+clean:
+	rm bin/run

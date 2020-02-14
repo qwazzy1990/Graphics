@@ -129,47 +129,7 @@ GLfloat white[] = {1.0, 1.0, 1.0, 1.0};
 }
 
 
-void splice(char** s, int idx, char* ss)
-{
-   //use a temp to not change value of og
-	char* temp = *s;
 
-   //prefix = temp from 0 up to and including index
-	char* prefix = calloc(strlen(*s)+strlen(ss)+10, sizeof(char));
-   //postfix = temp from index +1 up to strlen(temp)
-	char* postfix = calloc(strlen(*s)+strlen(ss)+10, sizeof(char));
-
-   //copy prefix
-	for(int i = 0; i <= idx; i++)
-		prefix[i] = temp[i];
-	
-   //temp idx
-	int c = 0;
-
-   //copy from idx+1 to end of temp in postfix
-	for(int i = idx+1; i <  strlen(temp); i++)
-	{
-		postfix[c] = temp[i];
-		c++;
-	}
-
-   //concatenate substring to prefix
-	strcat(prefix, ss);
-   //concat postfix to new prefix
-	strcat(prefix, postfix);
-
-   //free the prev string
-	free(*s);
-
-   //reallocate it
-	*s = calloc(strlen(prefix)+10, sizeof(char));
-
-   //strcpy prefix, i.e. new string to *s
-	strcpy(*s, prefix);
-	free(prefix);
-	free(postfix);
-	
-}
 void reshape(int w, int h)
 {
    glViewport (0, 0, (GLsizei) w, (GLsizei) h);
@@ -309,97 +269,91 @@ char** split(char* s, char* delims)
 }
 void lSystem(char** s, int maxdepth, int count) 
 {
-   printf("Entering function count is %d maxDepth is %d\n", count, maxdepth);
    //base case = max growth
 	if(count == maxdepth)return;
 
    //subtring to be replacing 'F' with is the current state of the string s at the current level
    char* subString = calloc(strlen(*s)+100, sizeof(char));
+   if(subString == NULL)
+   {
+      printf("Calloc for substring failed\nreturning\n");
+      return;
+   }
+   strcpy(subString, *s);
+   free(*s);
+   long long  mem = 10;
    //strcpy(subString, "F");
-   strcat(subString, *s);
-
-	
-   //set temp to *s to ensure you are adjusting the correct 'F'.
-	char* temp = *s;
-   char** arr = calloc(strlen(*s)+10, sizeof(char*));
-   int rowCount = 0; 
-   int mem = 0; 
    
 
+   char* f = calloc(10, sizeof(char));
+   if(f == NULL)
+   {
+
+      printf("Calloc for f failed\nreturning\n");
+      return;
+   }
    //becuase *s will grow in length within same depth, it is not a staric val
-	for(int i = 0; i < strlen(temp); i++)
+	for(int i = 0; i < strlen(subString); i++)
 	{
+      f[0] = subString[i];
       //if F is found then replace with F and all of S
-		if(temp[i] == 'F' && rowCount == 0){
-         mem++;
-         arr = calloc(mem, sizeof(char*));
-         arr[rowCount] = calloc(strlen(subString)+10, sizeof(char));
-         arr[rowCount][0] = 'F';
-         strcat(arr[rowCount], subString);
-         rowCount++;
+		if(subString[i] == 'F' && i == 0){
+         mem+=strlen(subString);
+         *s = calloc(mem, sizeof(char));
+         if(*s == NULL)
+         {
+            printf("Failed at 1\n");
+            return;
+         }
+         strcat(*s, f);
+         strcat(*s, subString);
          //continue;
          
 		}
       //if rowCount = 0 and first character is not F
-      else if(rowCount == 0)
+      else if(i == 0 && subString[i] != 'F')
       {
          mem++;
-         arr = calloc(mem, sizeof(char*));
-         arr[rowCount] = calloc(10, sizeof(char));
-         arr[rowCount][0] = temp[i];
-         rowCount++;
+         *s = calloc(mem, sizeof(char));
+         if(*s == NULL)
+         {
+            printf("Failed at 2\n");
+            return;
+         }
+         strcat(*s, f);
          //continue;
       }
       //see above
-      else if(temp[i] == 'F')
+      else if(subString[i] == 'F')
       {
-         mem++;
-         arr = realloc(arr, mem*sizeof(char*));
-         arr[rowCount] = calloc(strlen(subString)+10, sizeof(char));
-         arr[rowCount][0] = 'F';
-         strcat(arr[rowCount], subString);
-         rowCount++;
+         mem+=strlen(*s) + strlen(subString);
+         *s = realloc(*s, mem*sizeof(char));
+         if(*s == NULL)
+         {
+            printf("Failed at 3\n");
+            return;
+         }
+
+         strcat(*s, f);
+         strcat(*s, subString);
       }
       //just add the character
       else {
-         mem ++;
-         arr = realloc(arr, mem*sizeof(char*));
-         arr[rowCount] = calloc(10, sizeof(char));
-         arr[rowCount][0] = temp[i];
+         mem += strlen(*s);
+         *s = realloc(*s, mem*sizeof(char));
 
-         rowCount++;
+         if(*s == NULL)
+         {
+            printf("Failed at 4\n");
+            return;
+         }
+
+
+         strcat(*s, f);
       }
 	}
-   mem++;
-   //terminate array with NULL
-   arr = realloc(arr, mem*sizeof(char*));
-   arr[mem] = NULL;
-
-   //free substring
+   free(f);
    free(subString);
-   free(*s);
-   int memSize = 10;
-
-   //get the amount of memory needed for new string
-   for(int i = 0; arr[i] != NULL; i++)
-   {
-   
-      memSize += strlen(arr[i]);
-   }
-
-   //add the array to *s
-   *s = calloc(memSize, sizeof(char));
-   for(int i = 0; arr[i] != NULL; i++)
-   {
-      strcat(*s, arr[i]);
-   }
-
-   //free the array
-   for(int i = 0; i < mem; i++)
-   {
-      free(arr[i]);
-   }
-   free(arr);
 
    //recursive call on lSys
    lSystem(s, maxdepth, count+1);
@@ -410,6 +364,17 @@ void lSystem(char** s, int maxdepth, int count)
  *  Open window with initial window size, title bar, 
  *  RGBA display mode, and handle input events.
  */
+
+ void invaldString(char* s)
+ {
+    for(int i = 0; i < strlen(s); i++)
+    {
+       if(s[i] != 'F' && s[i] != '+' && s[i] != '-' && s[i] != '[' && s[i]!=']')
+       {
+          printf("----------\nError at %d with char %c\n---------------\n", i, s[i]);
+       }
+    }
+ }
 int main(int argc, char** argv)
 {
    // glutInit(&argc, argv);
@@ -427,11 +392,10 @@ int main(int argc, char** argv)
    char** arr = split(s, "\n");
 
    int maxDepth = atoi(arr[0]);
-   int rotation = atof(arr[1]);
+   //int rotation = atof(arr[1]);
    char* lSys = calloc(strlen(arr[2])+10, sizeof(char));
    strcpy(lSys, arr[2]);
-   lSystem(&lSys, 4, 1);
-   printf("%s\n", lSys);
+   lSystem(&lSys, maxDepth-1, 1);
    free(lSys);
    for(int i = 0; arr[i] != NULL; i++)
       free(arr[i]);
