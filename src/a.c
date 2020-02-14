@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
+
 	/* flags used to control the appearance of the image */
 int lineDrawing = 1;	// draw polygons as solid or lines
 int lighting = 0;	// use diffuse and specular lighting
@@ -265,9 +267,49 @@ int  red, green, blue;
 }
 
 
-
-void lSystem(char** s, int maxdepth, int count)
+char* readFile(char* fileName)
 {
+   FILE* fp = fopen(fileName, "r");
+   if(fp == NULL)return NULL;
+   rewind(fp);
+   fseek(fp, 0L, SEEK_END);
+   long len = ftell(fp);
+   rewind(fp);
+   char* file = calloc(len+21, sizeof(char));
+   for(int i = 0; i < len; i++)
+   {
+      char c = fgetc(fp);
+      if(c == EOF)break;
+      file[i] = c;
+   }
+   fclose(fp);
+   return file;
+}
+
+char** split(char* s, char* delims)
+{
+   char** arr = calloc(strlen(s), sizeof(char*));
+   for(int i = 0; i < strlen(s); i++)
+      arr[i] = calloc(strlen(s), sizeof(char));
+
+   int rowCount = 0;
+   char* copy = calloc(strlen(s), sizeof(char));
+   strcpy(copy, s);
+
+   char* token = strtok(copy, delims);
+   while(token != NULL)
+   {
+      strcpy(arr[rowCount], token);
+      token = strtok(NULL, delims);
+      rowCount++;      
+   }
+   free(copy);
+   arr[rowCount] = NULL;
+   return arr;
+}
+void lSystem(char** s, int maxdepth, int count) 
+{
+   printf("Entering function count is %d maxDepth is %d\n", count, maxdepth);
    //base case = max growth
 	if(count == maxdepth)return;
 
@@ -279,26 +321,90 @@ void lSystem(char** s, int maxdepth, int count)
 	
    //set temp to *s to ensure you are adjusting the correct 'F'.
 	char* temp = *s;
+   char** arr = calloc(strlen(*s)+10, sizeof(char*));
+   int rowCount = 0; 
+   int mem = 0; 
+   
 
    //becuase *s will grow in length within same depth, it is not a staric val
-	for(int i = 0; i < strlen(*s); i++)
+	for(int i = 0; i < strlen(temp); i++)
 	{
-      //if F is found then replace
-		if(temp[i] == 'F'){
-         // generate the new string  with splice
-         splice(s, i, subString);
-         //recursive call
-		   lSystem(s, maxdepth, count+1);
-         //reset temp to the newly modified string
-         temp = *s;
-
-         //ensure you will restart in the for loop at the right spot
-         //after recursive call
-         i+=strlen(subString);
-
+      //if F is found then replace with F and all of S
+		if(temp[i] == 'F' && rowCount == 0){
+         mem++;
+         arr = calloc(mem, sizeof(char*));
+         arr[rowCount] = calloc(strlen(subString)+10, sizeof(char));
+         arr[rowCount][0] = 'F';
+         strcat(arr[rowCount], subString);
+         rowCount++;
+         //continue;
+         
 		}
+      //if rowCount = 0 and first character is not F
+      else if(rowCount == 0)
+      {
+         mem++;
+         arr = calloc(mem, sizeof(char*));
+         arr[rowCount] = calloc(10, sizeof(char));
+         arr[rowCount][0] = temp[i];
+         rowCount++;
+         //continue;
+      }
+      //see above
+      else if(temp[i] == 'F')
+      {
+         mem++;
+         arr = realloc(arr, mem*sizeof(char*));
+         arr[rowCount] = calloc(strlen(subString)+10, sizeof(char));
+         arr[rowCount][0] = 'F';
+         strcat(arr[rowCount], subString);
+         rowCount++;
+      }
+      //just add the character
+      else {
+         mem ++;
+         arr = realloc(arr, mem*sizeof(char*));
+         arr[rowCount] = calloc(10, sizeof(char));
+         arr[rowCount][0] = temp[i];
+
+         rowCount++;
+      }
 	}
+   mem++;
+   //terminate array with NULL
+   arr = realloc(arr, mem*sizeof(char*));
+   arr[mem] = NULL;
+
+   //free substring
    free(subString);
+   free(*s);
+   int memSize = 10;
+
+   //get the amount of memory needed for new string
+   for(int i = 0; arr[i] != NULL; i++)
+   {
+   
+      memSize += strlen(arr[i]);
+   }
+
+   //add the array to *s
+   *s = calloc(memSize, sizeof(char));
+   for(int i = 0; arr[i] != NULL; i++)
+   {
+      strcat(*s, arr[i]);
+   }
+
+   //free the array
+   for(int i = 0; i < mem; i++)
+   {
+      free(arr[i]);
+   }
+   free(arr);
+
+   //recursive call on lSys
+   lSystem(s, maxdepth, count+1);
+   //recurse   
+
 }
 /*  Main Loop
  *  Open window with initial window size, title bar, 
@@ -317,10 +423,21 @@ int main(int argc, char** argv)
    // glutKeyboardFunc (keyboard);
    // glutMainLoop();
 
-   char* s = calloc(200, sizeof(char));
-   strcpy(s, "F[+F]");
-   lSystem(&s, 2, 1);
-   printf("%s\n", s);
+   char* s = readFile(argv[1]);
+   char** arr = split(s, "\n");
+
+   int maxDepth = atoi(arr[0]);
+   int rotation = atof(arr[1]);
+   char* lSys = calloc(strlen(arr[2])+10, sizeof(char));
+   strcpy(lSys, arr[2]);
+   lSystem(&lSys, 4, 1);
+   printf("%s\n", lSys);
+   free(lSys);
+   for(int i = 0; arr[i] != NULL; i++)
+      free(arr[i]);
+   
+   free(arr);
+   free(s);
    return 0; 
 }
 
