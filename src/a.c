@@ -39,7 +39,7 @@ void init (void)
 	/* if lighting is turned on then use ambient, diffuse and specular
 	   lights, otherwise use ambient lighting only */
    if (lighting == 1) {
-      glLightfv (GL_LIGHT0, GL_AMBIENT, light_ambient);
+      glLightfv (GL_LIGHT0, GL_AMBIENT, light_full_on);
       glLightfv (GL_LIGHT0, GL_DIFFUSE, light_diffuse);
       glLightfv (GL_LIGHT0, GL_SPECULAR, light_specular);
    } else {
@@ -77,7 +77,7 @@ GLfloat white[] = {1.0, 1.0, 1.0, 1.0};
 
 	/* set starting location of objects */
    glPushMatrix ();
-   glTranslatef(0.0, 0.0, -7.0);
+   glTranslatef(0.0, -3.0, -7.0);
    glRotatef (20.0, 1.0, 0.0, 0.0);
 
 	/* give all objects the same shininess value */
@@ -88,8 +88,8 @@ GLfloat white[] = {1.0, 1.0, 1.0, 1.0};
    glMaterialfv(GL_FRONT, GL_SPECULAR, white);
 	/* move to location for object then draw it */
    glPushMatrix ();
-   glTranslatef (-0.75, -0.5, 0.0); 
-   glRotatef (270.0, 1.0, 0.0, 0.0);
+   glTranslatef (0.0, 2.0, 0.0); 
+   glRotatef (-275.0, 0.0, 1.0, 0.0);
    glutSolidCone (1.0, 2.0, 15, 15);
    glPopMatrix ();
 
@@ -267,96 +267,67 @@ char** split(char* s, char* delims)
    arr[rowCount] = NULL;
    return arr;
 }
-void lSystem(char** s, int maxdepth, int count) 
+void lSystem(char** s, int maxdepth, int count, char* currentState, char* ogState) 
 {
    //base case = max growth
-	if(count == maxdepth)return;
-
-   //subtring to be replacing 'F' with is the current state of the string s at the current level
-   char* subString = calloc(strlen(*s)+100, sizeof(char));
-   if(subString == NULL)
+	if(count == maxdepth && *s == NULL)
    {
-      printf("Calloc for substring failed\nreturning\n");
+      *s = calloc(strlen(ogState)+2, sizeof(char));
+      strcat(*s, "F");
+      strcat(*s, ogState);
       return;
    }
-   strcpy(subString, *s);
-   free(*s);
-   long long  mem = 10;
+   if(count == maxdepth && *s != NULL)
+   {
+      int memSize = strlen(*s) + strlen(currentState) + 2;
+      *s = realloc(*s, memSize*sizeof(char));
+      strcat(*s, "F");
+      strcat(*s, ogState);
+      return;
+   }
+
+   //subtring to be replacing 'F' with is the current state of the string s at the current level
+   unsigned long  mem = 10;
    //strcpy(subString, "F");
    
 
-   char* f = calloc(10, sizeof(char));
-   if(f == NULL)
-   {
-
-      printf("Calloc for f failed\nreturning\n");
-      return;
-   }
+   char* f = calloc(2, sizeof(char));
    //becuase *s will grow in length within same depth, it is not a staric val
-	for(int i = 0; i < strlen(subString); i++)
+	for(int i = 0; i < strlen(currentState); i++)
 	{
-      f[0] = subString[i];
+      f[0] = currentState[i];
       //if F is found then replace with F and all of S
-		if(subString[i] == 'F' && i == 0){
-         mem+=strlen(subString);
-         *s = calloc(mem, sizeof(char));
-         if(*s == NULL)
-         {
-            printf("Failed at 1\n");
-            return;
-         }
-         strcat(*s, f);
-         strcat(*s, subString);
+		if(currentState[i] == 'F'){
+       
+         char* newState = calloc(strlen(currentState)+5, sizeof(char));
+         strcat(newState, f);
+         strcat(newState, currentState);
+         
          //continue;
+         lSystem(s, maxdepth, count+1, newState, ogState);
+         free(newState);
          
 		}
-      //if rowCount = 0 and first character is not F
-      else if(i == 0 && subString[i] != 'F')
+      else 
       {
-         mem++;
-         *s = calloc(mem, sizeof(char));
          if(*s == NULL)
          {
-            printf("Failed at 2\n");
-            return;
+            *s = calloc(2, sizeof(char));
+            strcat(*s, f);
          }
-         strcat(*s, f);
-         //continue;
-      }
-      //see above
-      else if(subString[i] == 'F')
-      {
-         mem+=strlen(*s) + strlen(subString);
-         *s = realloc(*s, mem*sizeof(char));
-         if(*s == NULL)
+         else 
          {
-            printf("Failed at 3\n");
-            return;
+            int mem = strlen(*s) + 2;
+            *s = realloc(*s, mem*sizeof(char));
+            strcat(*s, f);
          }
-
-         strcat(*s, f);
-         strcat(*s, subString);
-      }
-      //just add the character
-      else {
-         mem += strlen(*s);
-         *s = realloc(*s, mem*sizeof(char));
-
-         if(*s == NULL)
-         {
-            printf("Failed at 4\n");
-            return;
-         }
-
-
-         strcat(*s, f);
       }
 	}
    free(f);
-   free(subString);
+   //free(currentState);
 
    //recursive call on lSys
-   lSystem(s, maxdepth, count+1);
+//   lSystem(s, maxdepth, count+1);
    //recurse   
 
 }
@@ -377,31 +348,37 @@ void lSystem(char** s, int maxdepth, int count)
  }
 int main(int argc, char** argv)
 {
-   // glutInit(&argc, argv);
-   // glutInitDisplayMode (GLUT_SINGLE | GLUT_RGBA | GLUT_DEPTH);
-   // glutInitWindowSize (1024, 768);
-   // glutCreateWindow (argv[0]);
-   // init();
-   // loadTexture();
-   // glutReshapeFunc (reshape);
-   // glutDisplayFunc(display);
-   // glutKeyboardFunc (keyboard);
-   // glutMainLoop();
-
+    //update argc and argv with the command line arguments glut provides
+    //always before any other glut or gl command when creating a glut window
+    glutInit(&argc, argv);
+    
+   //set the initial display modes for the window. I.E. a single window with RGBA
+   glutInitDisplayMode (GLUT_SINGLE | GLUT_RGBA | GLUT_DEPTH);
+   //set the windows size
+   glutInitWindowSize (1024, 768);
    char* s = readFile(argv[1]);
    char** arr = split(s, "\n");
-
-   int maxDepth = atoi(arr[0]);
-   //int rotation = atof(arr[1]);
-   char* lSys = calloc(strlen(arr[2])+10, sizeof(char));
-   strcpy(lSys, arr[2]);
-   lSystem(&lSys, maxDepth-1, 1);
+   char* lSys = NULL;
+   char* currentState = calloc(10, sizeof(char));
+   strcat(currentState, "F[+F]");
+   char* ogState = calloc(10, sizeof(char));
+   strcpy(ogState, currentState);
+   lSystem(&lSys, 3, 1, currentState, ogState);
+   printf("%s\n", lSys);
    free(lSys);
-   for(int i = 0; arr[i] != NULL; i++)
-      free(arr[i]);
-   
-   free(arr);
-   free(s);
+   free(currentState);
+
+   //create a window with the name of "shit stain"
+   //   glutCreateWindow ("Shit stain");
+   //   //
+   //   init();
+   //   loadTexture();
+   //   glutReshapeFunc (reshape);
+   //   glutDisplayFunc(display);
+   //   glutKeyboardFunc (keyboard);
+   //   free(lSys);
+   //   glutMainLoop();
+   //
    return 0; 
 }
 
