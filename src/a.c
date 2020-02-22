@@ -23,7 +23,8 @@ int smoothShading = 0;  // smooth or flat shading
 int textures = 0;
 GLubyte  Image[64][64][4];
 GLuint   textureID[1];
-
+char** arr = NULL;
+void lSystem(char* s, int maxdepth, int count, double angle); 
 /*  Initialize material property and light source.
  */
 void init (void)
@@ -39,9 +40,10 @@ void init (void)
 	/* if lighting is turned on then use ambient, diffuse and specular
 	   lights, otherwise use ambient lighting only */
    if (lighting == 1) {
-      glLightfv (GL_LIGHT0, GL_AMBIENT, light_full_on);
+      //glLightfv (GL_LIGHT0, GL_AMBIENT, light_full_on);
       glLightfv (GL_LIGHT0, GL_DIFFUSE, light_diffuse);
       glLightfv (GL_LIGHT0, GL_SPECULAR, light_specular);
+      glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
    } else {
       glLightfv (GL_LIGHT0, GL_AMBIENT, light_full_on);
       glLightfv (GL_LIGHT0, GL_DIFFUSE, light_full_off);
@@ -56,10 +58,7 @@ void init (void)
 
 void display (void)
 {
-GLfloat blue[]  = {0.0, 0.0, 1.0, 1.0};
-GLfloat red[]   = {1.0, 0.0, 0.0, 1.0};
-GLfloat green[] = {0.0, 1.0, 0.0, 1.0};
-GLfloat white[] = {1.0, 1.0, 1.0, 1.0};
+   GLfloat white[] = {1.0, 1.0, 1.0, 1.0};
 
    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -84,21 +83,9 @@ GLfloat white[] = {1.0, 1.0, 1.0, 1.0};
    glMaterialf(GL_FRONT, GL_SHININESS, 30.0);
 
 	/* set colour of cone */
-   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, red);
-   glMaterialfv(GL_FRONT, GL_SPECULAR, white);
+   //glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, red);
+   //glMaterialfv(GL_FRONT, GL_SPECULAR, white);
 	/* move to location for object then draw it */
-   glPushMatrix ();
-   glTranslatef (0.0, 2.0, 0.0); 
-   glRotatef (-275.0, 0.0, 1.0, 0.0);
-   glutSolidCone (1.0, 2.0, 15, 15);
-   glPopMatrix ();
-
-	/* set colour of sphere */
-   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, green);
-   glMaterialfv(GL_FRONT, GL_SPECULAR, white);
-	/* move to location for object then draw it */
-   glPushMatrix ();
-   glTranslatef (0.75, 0.0, -1.0); 
 
 	/* turn texturing on */
    if (textures == 1) {
@@ -108,23 +95,24 @@ GLfloat white[] = {1.0, 1.0, 1.0, 1.0};
       glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, white);
    }
 
-   glutSolidSphere (1.0, 20, 20);
+  // glutSolidSphere (1.0, 20, 20);
 
    if (textures == 1) 
       glDisable(GL_TEXTURE_2D);
-   glPopMatrix ();
+   //glPopMatrix ();
 
+   lSystem(arr[2], atoi(arr[0]), 1, atof(arr[1]));
 	/* set colour of torus */
-   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, blue);
-   glMaterialfv(GL_FRONT, GL_SPECULAR, white);
+/*   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, blue);
+   glMaterialfv(GL_FRONT, GL_SPECULAR, white);*/
 	/* move to location for object then draw it */
-   glPushMatrix ();
+   /*glPushMatrix ();
    glTranslatef (-0.75, 0.5, 0.0); 
    glRotatef (90.0, 1.0, 0.0, 0.0);
    glutSolidTorus (0.275, 0.85, 15, 15);
    glPopMatrix ();
 
-   glPopMatrix ();
+   glPopMatrix ();*/
    glFlush ();
 }
 
@@ -267,69 +255,55 @@ char** split(char* s, char* delims)
    arr[rowCount] = NULL;
    return arr;
 }
-void lSystem(char** s, int maxdepth, int count, char* currentState, char* ogState) 
+void lSystem(char* s, int maxdepth, int count, double angle) 
 {
    //base case = max growth
-	if(count == maxdepth && *s == NULL)
+	if(count == maxdepth)
    {
-      *s = calloc(strlen(ogState)+2, sizeof(char));
-      strcat(*s, "F");
-      strcat(*s, ogState);
-      return;
-   }
-   if(count == maxdepth && *s != NULL)
-   {
-      int memSize = strlen(*s) + strlen(currentState) + 2;
-      *s = realloc(*s, memSize*sizeof(char));
-      strcat(*s, "F");
-      strcat(*s, ogState);
       return;
    }
 
    //subtring to be replacing 'F' with is the current state of the string s at the current level
-   unsigned long  mem = 10;
    //strcpy(subString, "F");
    
+GLfloat green[] = {0.0, 1.0, 0.0, 1.0};
 
-   char* f = calloc(2, sizeof(char));
    //becuase *s will grow in length within same depth, it is not a staric val
-	for(int i = 0; i < strlen(currentState); i++)
+	for(int i = 0; i < strlen(s); i++)
 	{
-      f[0] = currentState[i];
-      //if F is found then replace with F and all of S
-		if(currentState[i] == 'F'){
-       
-         char* newState = calloc(strlen(currentState)+5, sizeof(char));
-         strcat(newState, f);
-         strcat(newState, currentState);
-         
-         //continue;
-         lSystem(s, maxdepth, count+1, newState, ogState);
-         free(newState);
-         
-		}
-      else 
+      if(s[i] == 'F')
       {
-         if(*s == NULL)
-         {
-            *s = calloc(2, sizeof(char));
-            strcat(*s, f);
-         }
-         else 
-         {
-            int mem = strlen(*s) + 2;
-            *s = realloc(*s, mem*sizeof(char));
-            strcat(*s, f);
-         }
+         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, green);
+
+         //move up in y
+         glTranslatef (0.0, 1, 0.0); 
+         //draw sphere
+         glutSolidSphere (0.5, 15, 15);
+         
+         //recurse
+         lSystem(s, maxdepth, count+1, angle);
       }
-	}
-   free(f);
-   //free(currentState);
+      else if(s[i] == '[')
+      {
+         glPushMatrix();
+      }
+      else if(s[i] == ']')
+      {
+         glPopMatrix();
+      }
+      else if(s[i] == '+')
+      {
+         glRotatef(angle, 0, 0, 1);
+      }
+      else if(s[i] == '-')
+      {
+         glRotatef(-1*angle, 0, 0 , 1);
+      }
+      else{
+         //print error and return
+      }
 
-   //recursive call on lSys
-//   lSystem(s, maxdepth, count+1);
-   //recurse   
-
+   }
 }
 /*  Main Loop
  *  Open window with initial window size, title bar, 
@@ -357,28 +331,18 @@ int main(int argc, char** argv)
    //set the windows size
    glutInitWindowSize (1024, 768);
    char* s = readFile(argv[1]);
-   char** arr = split(s, "\n");
-   char* lSys = NULL;
-   char* currentState = calloc(10, sizeof(char));
-   strcat(currentState, "F[+F]");
-   char* ogState = calloc(10, sizeof(char));
-   strcpy(ogState, currentState);
-   lSystem(&lSys, 3, 1, currentState, ogState);
-   printf("%s\n", lSys);
-   free(lSys);
-   free(currentState);
+   arr = split(s, "\n");
 
-   //create a window with the name of "shit stain"
-   //   glutCreateWindow ("Shit stain");
-   //   //
-   //   init();
-   //   loadTexture();
-   //   glutReshapeFunc (reshape);
-   //   glutDisplayFunc(display);
-   //   glutKeyboardFunc (keyboard);
-   //   free(lSys);
-   //   glutMainLoop();
-   //
+     glutCreateWindow ("Shit stain");
+      //
+      init();
+      loadTexture();
+      glutReshapeFunc(reshape);
+      glutDisplayFunc(display);
+      glutKeyboardFunc (keyboard);
+      glutMainLoop();
+      free(s);
+  
    return 0; 
 }
 
